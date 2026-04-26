@@ -21,7 +21,7 @@ ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
 CV_PATH_JAVA = os.getenv(
     "CV_PATH_JAVA",
-    r"C:\Users\Dell\Downloads\CV_Brenda_KOUDJA.pdf",
+    r"C:\Users\Dell\job-agent\Cv de Brenda\CV_Brenda_KOUDJA.pdf",
 )
 BRENDA_EMAIL = os.getenv("BRENDA_EMAIL", "brendakoudja@gmail.com")
 
