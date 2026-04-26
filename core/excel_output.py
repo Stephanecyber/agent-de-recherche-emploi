@@ -377,7 +377,13 @@ def _save_domain_jobs(jobs: list, path: str, domain: str) -> str:
     for idx, job in enumerate(jobs_all, start=2):
         _add_job_row(ws, job, idx, domain)
 
-    wb.save(path)
+    try:
+        wb.save(path)
+    except PermissionError:
+        filename = os.path.basename(path)
+        print(f"\n[ERREUR] Impossible d'ecrire {filename}")
+        print(f"  -> Ferme le fichier dans Excel puis relance.\n")
+        raise
     return path
 
 
