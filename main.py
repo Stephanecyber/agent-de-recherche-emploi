@@ -64,10 +64,14 @@ def run():
 
     print(f"  Java & Backend : {len(brenda_filtered)} offres\n")
 
-    # ── Déduplication globale ───────────────────────────────────
-    all_filtered = stephane_filtered + brenda_filtered
-    new_jobs = filter_new_jobs(all_filtered)
-    print(f"Nouvelles offres (total) : {len(new_jobs)}\n")
+    # ── Déduplication — profils séparés ────────────────────────
+    stephane_new = filter_new_jobs(stephane_filtered, profile="stephane")
+    brenda_new   = filter_new_jobs(brenda_filtered,   profile="brenda")
+
+    print(f"Nouvelles offres Stephane : {len(stephane_new)}")
+    print(f"Nouvelles offres Brenda   : {len(brenda_new)}\n")
+
+    new_jobs = stephane_new + brenda_new
 
     if not new_jobs:
         print("Aucune nouvelle offre - fin du run.\n")
@@ -79,13 +83,11 @@ def run():
     save_jobs(new_jobs)
 
     # ── Emails ─────────────────────────────────────────────────
-    stephane_new = [j for j in new_jobs if j.domain in (DOMAIN_RESEAUX, DOMAIN_AUTOMATISME)]
-    brenda_new = [j for j in new_jobs if j.domain == DOMAIN_JAVA]
-
     send_alert(stephane_new, run_at)
     send_alert_brenda(brenda_new, run_at)
 
-    mark_as_seen(new_jobs)
+    mark_as_seen(stephane_new, profile="stephane")
+    mark_as_seen(brenda_new,   profile="brenda")
 
     # ── Résumé ─────────────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -96,13 +98,13 @@ def run():
     for src, count in by_source.items():
         print(f"     {src}: {count}")
 
-    print(f"\n  Stephane : {len(stephane_new)} nouvelles offres")
     top_s = [j for j in stephane_new if j.relevance_score >= 75]
+    print(f"\n  Stephane : {len(stephane_new)} nouvelles offres (top >= 75 : {len(top_s)})")
     for j in top_s[:5]:
         print(f"     [{j.relevance_score}/100] {j.title} - {j.company} [{j.domain}]")
 
-    print(f"\n  Brenda   : {len(brenda_new)} nouvelles offres Java")
     top_b = [j for j in brenda_new if j.relevance_score >= 75]
+    print(f"\n  Brenda   : {len(brenda_new)} nouvelles offres Java (top >= 75 : {len(top_b)})")
     for j in top_b[:5]:
         print(f"     [{j.relevance_score}/100] {j.title} - {j.company} ({j.location})")
 
