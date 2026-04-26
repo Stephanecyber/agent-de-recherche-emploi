@@ -57,22 +57,28 @@ def is_remote_ok(remote: str) -> bool:
     return True
 
 
-_ALTERNANCE_KEYWORDS = [
+_EXCLUDED_CONTRACT_KEYWORDS = [
+    # Alternance / apprentissage
     "alternance", "apprentissage", "contrat pro", "contrat de professionnalisation",
     "en alternance", "par alternance", "en apprentissage",
+    # Stage
+    "stage", "stagiaire", "offre de stage", "convention de stage",
+    "recherchons un stagiaire", "recherche un stagiaire",
 ]
 
 
 def is_contract_ok(contract_type: str) -> bool:
     ct = contract_type.upper().strip()
-    if ct in ("ALT", "CDD", "SAI", "MIS", "INT", "FRA", "LIB", "PRO", "APP"):
+    # STG=Stage, ALT=Alternance, APP=Apprentissage, PRO=Contrat pro,
+    # CDD, SAI=Saisonnier, MIS=Mission, INT=Intérim, FRA=Franchise, LIB=Libéral
+    if ct in ("STG", "ALT", "CDD", "SAI", "MIS", "INT", "FRA", "LIB", "PRO", "APP"):
         return False
     return ct in ("CDI", "NC", "")
 
 
 def is_not_alternance(title: str, description: str) -> bool:
     text = (title + " " + description).lower()
-    return not any(kw in text for kw in _ALTERNANCE_KEYWORDS)
+    return not any(kw in text for kw in _EXCLUDED_CONTRACT_KEYWORDS)
 
 
 def apply_filters(jobs: list) -> list:
