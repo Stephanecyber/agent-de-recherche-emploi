@@ -31,8 +31,8 @@ def run():
     stephane_jobs = []
     stephane_jobs += fetch_ft()
     stephane_jobs += fetch_adzuna()
-    stephane_jobs += fetch_jooble()
-    stephane_jobs += fetch_arbeitnow()
+    # Jooble desactive : base US, 0 offres France
+    # Arbeitnow desactive : base Allemagne, 0 offres France
     print(f"\nTotal brut Stephane : {len(stephane_jobs)} offres\n")
 
     stephane_filtered = apply_filters(stephane_jobs)
@@ -59,16 +59,8 @@ def run():
         cv_skills=JAVA_CV_SKILLS,
         target_titles=JAVA_TARGET_TITLES,
     )
-    brenda_jobs += fetch_jooble(
-        keywords=JAVA_SEARCH_KEYWORDS,
-        cv_skills=JAVA_CV_SKILLS,
-        target_titles=JAVA_TARGET_TITLES,
-    )
-    brenda_jobs += fetch_arbeitnow(
-        keywords=JAVA_ARBEITNOW_KEYWORDS,
-        cv_skills=JAVA_CV_SKILLS,
-        target_titles=JAVA_TARGET_TITLES,
-    )
+    # Jooble desactive : base US, 0 offres France
+    # Arbeitnow desactive : base Allemagne, 0 offres France
     print(f"\nTotal brut Brenda : {len(brenda_jobs)} offres\n")
 
     brenda_filtered = apply_filters(brenda_jobs)

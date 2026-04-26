@@ -80,6 +80,8 @@ def _build_job(item: dict, now: datetime,
     contract = _parse_contract(item.get("type", ""))
     url = item.get("link", "") or ""
     published_at = _parse_date(item.get("updated", "") or item.get("date", ""))
+    if not published_at.tzinfo:
+        published_at = published_at.replace(tzinfo=timezone.utc)
     age_hours = (now - published_at).total_seconds() / 3600
     region = _parse_region(location)
     remote = _parse_remote(description, title)
