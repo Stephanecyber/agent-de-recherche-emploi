@@ -19,23 +19,21 @@ main.py              ← Orchestrateur : collecte → filtre → dédoublonne �
 config.py            ← Tous les paramètres (keywords, critères, credentials)
 scrapers/
   france_travail.py  ← API OAuth2 officielle France Travail
-  adzuna.py          ← Adzuna API (12 mots-clés, agrège les résultats)
-  apec.py            ← BLOQUÉ — ne pas utiliser (erreurs réseau)
-  wttj.py            ← BLOQUÉ — ne pas utiliser (erreurs réseau)
-  cadremploi.py      ← BLOQUÉ — ne pas utiliser (RSS bloqué)
+  adzuna.py          ← Adzuna API (agrège les résultats)
 core/
-  models.py          ← Dataclass Job unifiée
+  models.py          ← Dataclass Job unifiée (champs phone, email_contact inclus)
   filters.py         ← Filtrage CDI / salaire / expérience / remote
   scoring.py         ← Score pertinence 0–100 + detect_skills + detect_experience_level
-  domain_classifier.py ← Classifie chaque offre en RESEAUX ou AUTOMATISME
-  deduplication.py   ← seen_jobs.json — évite les doublons entre runs
+  domain_classifier.py ← Classifie chaque offre : RESEAUX / AUTOMATISME / JAVA
+  deduplication.py   ← seen_jobs.json (Stéphane) + seen_jobs_brenda.json (Brenda)
   excel_output.py    ← Génère/update data/jobs_*.xlsx (voir détail ci-dessous)
   email_notifier.py  ← Alerte email HTML via Gmail SMTP (voir détail ci-dessous)
 data/
   jobs_reseaux_secu.xlsx     ← Généré automatiquement (ne pas committer)
   jobs_automatisme.xlsx      ← Généré automatiquement (ne pas committer)
-  seen_jobs.json             ← Mémoire des offres vues (ne pas committer)
-  lettres/                   ← Lettres de motivation générées (ne plus utiliser)
+  jobs_java.xlsx             ← Généré automatiquement (ne pas committer)
+  seen_jobs.json             ← Mémoire des offres vues — Stéphane (ne pas committer)
+  seen_jobs_brenda.json      ← Mémoire des offres vues — Brenda (ne pas committer)
 ```
 
 ## Lancement
@@ -48,15 +46,14 @@ python main.py
 | Scraper | Statut | Source |
 |---------|--------|--------|
 | `france_travail.py` | ✅ Actif | API OAuth2 officielle |
-| `adzuna.py` | ✅ Actif | API Adzuna (12 mots-clés) |
-| `apec.py` | ❌ Bloqué | Ne plus appeler |
-| `wttj.py` | ❌ Bloqué | Ne plus appeler |
-| `cadremploi.py` | ❌ Bloqué | Ne plus appeler |
+| `adzuna.py` | ✅ Actif | API Adzuna |
 
-## Scrapers supprimés de main.py
-APEC, WTTJ, Cadremploi ont été retirés de l'orchestrateur (`main.py`) car bloqués.
-La génération automatique de lettres de motivation (`cover_letter.py`) a aussi été retirée.
-Les fichiers sources existent encore dans `scrapers/` et `core/` mais ne sont plus appelés.
+## Scrapers supprimés (fichiers supprimés)
+- `apec.py` — authentification JavaScript requise (401 sans session)
+- `wttj.py` — bloqué réseau
+- `cadremploi.py` — RSS bloqué
+- `jooble.py` — couverture US uniquement, 0 résultat France
+- `arbeitnow.py` — couverture Allemagne uniquement, 0 résultat France
 
 ## Critères de filtrage (`core/filters.py`)
 - Contrat : CDI uniquement
@@ -78,11 +75,13 @@ Score 0–100 calculé ainsi :
 Chaque offre reçoit un domaine :
 - `DOMAIN_RESEAUX` = "Reseaux & Securite"
 - `DOMAIN_AUTOMATISME` = "Automatisme & Systemes"
+- `DOMAIN_JAVA` = "Java & Backend" (affecté manuellement dans `main.py`)
 
-Classification par comptage de signaux dans titre + description (titre vaut double).
+Classification Stéphane par comptage de signaux dans titre + description (titre vaut double).
+Offres Brenda reçoivent `DOMAIN_JAVA` directement sans classification.
 
 ## Excel — Structure des colonnes (`core/excel_output.py`)
-Ordre actuel (depuis refactoring 2026-04-22) :
+Ordre actuel (depuis session 2026-04-26, 20 colonnes) :
 
 | # | Colonne | Largeur | Note |
 |---|---------|---------|------|
@@ -102,8 +101,10 @@ Ordre actuel (depuis refactoring 2026-04-22) :
 | 14 | Resume description | 60 | wrap |
 | 15 | Competences detectees | 36 | wrap |
 | 16 | Niveau experience | 18 | muted |
-| 17 | Notes personnelles | 30 | wrap |
-| 18 | Detecte le | 20 | format DD/MM/YYYY HH:MM |
+| 17 | Telephone | 20 | lien `tel:` cliquable, extrait API FT |
+| 18 | Email recruteur | 28 | lien `mailto:` cliquable, extrait API FT |
+| 19 | Notes personnelles | 30 | wrap |
+| 20 | Detecte le | 20 | format DD/MM/YYYY HH:MM |
 
 ### Dropdown Statut (col 4)
 Valeurs disponibles via bouton dans chaque cellule :
@@ -126,17 +127,20 @@ Les anciens fichiers Excel (avant le refactoring) sont donc migrés correctement
 
 ### Comportement à chaque run
 1. Les offres existantes dans le fichier Excel sont relues (avec leurs statuts préservés)
-2. Les nouvelles offres sont ajoutées en haut (tri par date décroissante)
+2. Les nouvelles offres sont ajoutées en haut (tri par score décroissant)
 3. Les doublons sont éliminés par URL
-4. Le fichier entier est réécrit avec le nouveau format
+4. **Auto-purge** : offres "Nouveau" de plus de 24h → supprimées automatiquement
+5. Offres non-Nouveau (Postulé, Entretien, Refusé, Abandonné) → conservées en bas du fichier
+6. Le fichier entier est réécrit avec le nouveau format
 → Les statuts "Postulé" saisis manuellement ne sont jamais écrasés
 
 ## Email (`core/email_notifier.py`)
 - Envoi Gmail SMTP SSL (port 465)
-- Destinataire : `audreynandjou1@gmail.com`
-- CV en pièce jointe (PDF) selon le domaine
-- Chaque offre déjà "Postulée" dans Excel est marquée **"✓ Déjà postulé"** dans l'email (bouton gris à la place du bouton "Postuler")
+- **Stéphane** → `audreynandjou1@gmail.com` — CV Réseaux ou Automatisme selon domaine (`send_alert()`)
+- **Brenda** → `Stellagueteu@gmail.com` — Excel `jobs_java.xlsx` + CV Java en PJ (`send_alert_brenda()`)
+- Chaque offre déjà "Postulée" dans Excel est marquée **"✓ Déjà postulé"** dans l'email (bouton gris)
 - Section "TOP PRIORITE" (score ≥ 80) en haut de l'email
+- Colonnes email : Téléphone et Email recruteur inclus dans le tableau HTML
 - `_get_applied_urls()` détecte la colonne Statut dynamiquement via l'en-tête (migration safe)
 
 ## Profil cible (Stephane NANDJOU TONLEU)
@@ -158,23 +162,17 @@ Voir README.md section "Automatisation".
 ## Tâche en cours
 Aucune tâche en cours.
 
+
 ## Profil Brenda KOUDJA (Java & Backend)
-Troisième pipeline ajouté pour une amie ingénieure Java (2 ans BNP Paribas CIB).
-- Email : `brendakoudja@gmail.com`
-- CV : `CV_PATH_JAVA` dans `.env` (défaut : `C:\Users\Dell\Downloads\CV_Brenda_KOUDJA.pdf`)
+Troisième pipeline — amie ingénieure Java (2 ans BNP Paribas CIB, post-trading/dérivés listés).
+- Email : `Stellagueteu@gmail.com`
+- CV : `CV_PATH_JAVA` dans `.env` (défaut : `C:\Users\Dell\job-agent\Cv de Brenda\CV_Brenda_KOUDJA.pdf`)
 - Fichier Excel généré : `data/jobs_java.xlsx`
 - Domaine : `DOMAIN_JAVA = "Java & Backend"` (onglet orange `#E65100`)
-- Mots-clés dédiés : `JAVA_SEARCH_KEYWORDS` (15 FT) + `JAVA_ADZUNA_KEYWORDS` (9 Adzuna)
-- Scoring personnalisé : `JAVA_CV_SKILLS` (47 compétences) + `JAVA_TARGET_TITLES`
-- Email séparé envoyé à Brenda avec Excel (`jobs_java.xlsx`) + CV en PJ via `send_alert_brenda()`
-
-## Colonnes Excel (tous les fichiers) — depuis session 2026-04-26
-| # | Colonne | Note |
-|---|---------|------|
-| 17 | Téléphone | Extrait FT API (`contact.telephone`), lien `tel:` cliquable |
-| 18 | Email recruteur | Extrait FT API (`contact.courriel`), lien `mailto:` cliquable |
-| 19 | Notes personnelles | (anciennement col 17) |
-| 20 | Détecté le | (anciennement col 18) |
+- Mots-clés dédiés : `JAVA_SEARCH_KEYWORDS` (France Travail) + `JAVA_ADZUNA_KEYWORDS` (Adzuna)
+- Scoring personnalisé : `JAVA_CV_SKILLS` + `JAVA_TARGET_TITLES`
+- Email séparé envoyé à Brenda avec Excel + CV en PJ via `send_alert_brenda()`
+- Déduplication séparée : `data/seen_jobs_brenda.json`
 
 ## Historique des sessions
 
@@ -187,9 +185,13 @@ Troisième pipeline ajouté pour une amie ingénieure Java (2 ans BNP Paribas CI
 - `scoring.py` : params optionnels `cv_skills` et `target_titles` dans `compute_score()` et `detect_skills()`
 - `france_travail.py` : extraction téléphone/email depuis champ `contact`, param `keywords`/`cv_skills`/`target_titles`
 - `adzuna.py` : param `keywords`/`cv_skills`/`target_titles` propagés jusqu'à `_build_job()`
-- `excel_output.py` : +2 colonnes (Téléphone col 17, Email recruteur col 18), onglet Java orange, migration safe
+- `excel_output.py` : +2 colonnes (Téléphone col 17, Email recruteur col 18), onglet Java orange, auto-purge offres "Nouveau" > 24h, offres non-Nouveau conservées en bas
 - `email_notifier.py` : `send_alert_brenda()` envoie à `BRENDA_EMAIL` avec Excel + CV joint
-- `main.py` : deux collectes séparées (Stéphane / Brenda), déduplication commune, emails séparés
+- `deduplication.py` : séparation par profil (`seen_jobs.json` / `seen_jobs_brenda.json`)
+- `main.py` : deux collectes séparées (Stéphane / Brenda), déduplication séparée, emails séparés
+- Suppression définitive : `jooble.py`, `arbeitnow.py`, `apec.py`, `wttj.py`, `cadremploi.py`
+- `config.py` : suppression `JOOBLE_API_KEY`, `ARBEITNOW_KEYWORDS`, `JAVA_ARBEITNOW_KEYWORDS`
+- `.env.example` : suppression section Jooble
 
 ### Session 2026-04-22
 **Implémenté :**

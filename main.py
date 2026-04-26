@@ -6,8 +6,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from scrapers.france_travail import fetch_jobs as fetch_ft
 from scrapers.adzuna import fetch_jobs as fetch_adzuna
-from scrapers.jooble import fetch_jobs as fetch_jooble
-from scrapers.arbeitnow import fetch_jobs as fetch_arbeitnow
 from core.filters import apply_filters
 from core.deduplication import filter_new_jobs, mark_as_seen
 from core.excel_output import save_jobs
@@ -16,7 +14,6 @@ from core.domain_classifier import classify_job, DOMAIN_RESEAUX, DOMAIN_AUTOMATI
 from config import (
     SEARCH_KEYWORDS, JAVA_SEARCH_KEYWORDS, JAVA_ADZUNA_KEYWORDS,
     JAVA_CV_SKILLS, JAVA_TARGET_TITLES,
-    ARBEITNOW_KEYWORDS, JAVA_ARBEITNOW_KEYWORDS,
 )
 
 
@@ -31,8 +28,6 @@ def run():
     stephane_jobs = []
     stephane_jobs += fetch_ft()
     stephane_jobs += fetch_adzuna()
-    # Jooble desactive : base US, 0 offres France
-    # Arbeitnow desactive : base Allemagne, 0 offres France
     print(f"\nTotal brut Stephane : {len(stephane_jobs)} offres\n")
 
     stephane_filtered = apply_filters(stephane_jobs)
@@ -59,8 +54,6 @@ def run():
         cv_skills=JAVA_CV_SKILLS,
         target_titles=JAVA_TARGET_TITLES,
     )
-    # Jooble desactive : base US, 0 offres France
-    # Arbeitnow desactive : base Allemagne, 0 offres France
     print(f"\nTotal brut Brenda : {len(brenda_jobs)} offres\n")
 
     brenda_filtered = apply_filters(brenda_jobs)

@@ -19,7 +19,6 @@ CV_PATH_AUTOMATISME = os.getenv(
 )
 ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
-JOOBLE_API_KEY = os.getenv("JOOBLE_API_KEY", "")
 CV_PATH_JAVA = os.getenv(
     "CV_PATH_JAVA",
     r"C:\Users\Dell\job-agent\Cv de Brenda\CV_Brenda_KOUDJA.pdf",
@@ -244,29 +243,3 @@ JAVA_CV_SKILLS = [
     "poo", "uml", "merise", "linux",
 ]
 
-# ─────────────────────────────────────────────
-# Mots-clés Arbeitnow (en anglais — site international)
-# ─────────────────────────────────────────────
-
-ARBEITNOW_KEYWORDS = [
-    "network engineer",
-    "cybersecurity engineer",
-    "devops engineer",
-    "cloud engineer azure",
-    "security engineer",
-    "infrastructure engineer",
-    "automation engineer",
-    "scada engineer",
-    "iam engineer",
-    "soc analyst",
-]
-
-JAVA_ARBEITNOW_KEYWORDS = [
-    "java developer",
-    "java backend engineer",
-    "java spring boot",
-    "java microservices",
-    "java software engineer",
-    "java devops",
-    "java fintech",
-]
