@@ -158,7 +158,38 @@ Voir README.md section "Automatisation".
 ## Tâche en cours
 Aucune tâche en cours.
 
+## Profil Brenda KOUDJA (Java & Backend)
+Troisième pipeline ajouté pour une amie ingénieure Java (2 ans BNP Paribas CIB).
+- Email : `brendakoudja@gmail.com`
+- CV : `CV_PATH_JAVA` dans `.env` (défaut : `C:\Users\Dell\Downloads\CV_Brenda_KOUDJA.pdf`)
+- Fichier Excel généré : `data/jobs_java.xlsx`
+- Domaine : `DOMAIN_JAVA = "Java & Backend"` (onglet orange `#E65100`)
+- Mots-clés dédiés : `JAVA_SEARCH_KEYWORDS` (15 FT) + `JAVA_ADZUNA_KEYWORDS` (9 Adzuna)
+- Scoring personnalisé : `JAVA_CV_SKILLS` (47 compétences) + `JAVA_TARGET_TITLES`
+- Email séparé envoyé à Brenda avec Excel (`jobs_java.xlsx`) + CV en PJ via `send_alert_brenda()`
+
+## Colonnes Excel (tous les fichiers) — depuis session 2026-04-26
+| # | Colonne | Note |
+|---|---------|------|
+| 17 | Téléphone | Extrait FT API (`contact.telephone`), lien `tel:` cliquable |
+| 18 | Email recruteur | Extrait FT API (`contact.courriel`), lien `mailto:` cliquable |
+| 19 | Notes personnelles | (anciennement col 17) |
+| 20 | Détecté le | (anciennement col 18) |
+
 ## Historique des sessions
+
+### Session 2026-04-26
+**Implémenté :**
+- Ajout du pipeline Java pour Brenda KOUDJA (3ème profil)
+- `DOMAIN_JAVA` dans `domain_classifier.py`, `excel_output.py`, `email_notifier.py`, `main.py`
+- `config.py` : `JAVA_SEARCH_KEYWORDS`, `JAVA_ADZUNA_KEYWORDS`, `JAVA_CV_SKILLS`, `JAVA_TARGET_TITLES`, `BRENDA_EMAIL`, `CV_PATH_JAVA`
+- `models.py` : champs `phone` et `email_contact` ajoutés à la dataclass `Job`
+- `scoring.py` : params optionnels `cv_skills` et `target_titles` dans `compute_score()` et `detect_skills()`
+- `france_travail.py` : extraction téléphone/email depuis champ `contact`, param `keywords`/`cv_skills`/`target_titles`
+- `adzuna.py` : param `keywords`/`cv_skills`/`target_titles` propagés jusqu'à `_build_job()`
+- `excel_output.py` : +2 colonnes (Téléphone col 17, Email recruteur col 18), onglet Java orange, migration safe
+- `email_notifier.py` : `send_alert_brenda()` envoie à `BRENDA_EMAIL` avec Excel + CV joint
+- `main.py` : deux collectes séparées (Stéphane / Brenda), déduplication commune, emails séparés
 
 ### Session 2026-04-22
 **Implémenté :**

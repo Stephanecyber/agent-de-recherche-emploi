@@ -1,5 +1,6 @@
 DOMAIN_RESEAUX = "Reseaux & Securite"
 DOMAIN_AUTOMATISME = "Automatisme & Systemes"
+DOMAIN_JAVA = "Java & Backend"
 
 _RESEAUX_SIGNALS = [
     "cybersécurité", "cybersecurite", "sécurité informatique", "securite informatique",

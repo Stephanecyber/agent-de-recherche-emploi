@@ -4,31 +4,40 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from datetime import datetime
-from config import GMAIL_ADDRESS, GMAIL_APP_PASSWORD, NOTIFY_EMAIL, CV_PATH_RESEAUX, CV_PATH_AUTOMATISME
-from core.domain_classifier import DOMAIN_RESEAUX, DOMAIN_AUTOMATISME
+from config import (
+    GMAIL_ADDRESS, GMAIL_APP_PASSWORD, NOTIFY_EMAIL,
+    CV_PATH_RESEAUX, CV_PATH_AUTOMATISME, CV_PATH_JAVA, BRENDA_EMAIL,
+)
+from core.domain_classifier import DOMAIN_RESEAUX, DOMAIN_AUTOMATISME, DOMAIN_JAVA
 
 DOMAIN_LABELS = {
     DOMAIN_RESEAUX: "Reseaux & Securite",
     DOMAIN_AUTOMATISME: "Automatisme & Systemes",
+    DOMAIN_JAVA: "Java & Backend",
 }
 
 DOMAIN_COLORS = {
     DOMAIN_RESEAUX: "#1565C0",
     DOMAIN_AUTOMATISME: "#2E7D32",
+    DOMAIN_JAVA: "#E65100",
 }
 
 CV_PATHS = {
     DOMAIN_RESEAUX: CV_PATH_RESEAUX,
     DOMAIN_AUTOMATISME: CV_PATH_AUTOMATISME,
+    DOMAIN_JAVA: CV_PATH_JAVA,
 }
 
 
 def _score_badge(score: int) -> str:
     if score >= 75:
-        return f'<span style="background:#00C853;color:#000;padding:2px 8px;border-radius:12px;font-weight:bold">{score}/100</span>'
+        return (f'<span style="background:#00C853;color:#000;padding:2px 8px;'
+                f'border-radius:12px;font-weight:bold">{score}/100</span>')
     if score >= 50:
-        return f'<span style="background:#FFD600;color:#000;padding:2px 8px;border-radius:12px;font-weight:bold">{score}/100</span>'
-    return f'<span style="background:#FF6D00;color:#fff;padding:2px 8px;border-radius:12px;font-weight:bold">{score}/100</span>'
+        return (f'<span style="background:#FFD600;color:#000;padding:2px 8px;'
+                f'border-radius:12px;font-weight:bold">{score}/100</span>')
+    return (f'<span style="background:#FF6D00;color:#fff;padding:2px 8px;'
+            f'border-radius:12px;font-weight:bold">{score}/100</span>')
 
 
 def _exp_badge(level: str) -> str:
@@ -38,22 +47,22 @@ def _exp_badge(level: str) -> str:
         "Senior": "#F44336", "NC": "#9E9E9E",
     }
     color = colors.get(level, "#9E9E9E")
-    return f'<span style="background:{color};color:#000;padding:1px 6px;border-radius:8px;font-size:11px">{level}</span>'
+    return (f'<span style="background:{color};color:#000;padding:1px 6px;'
+            f'border-radius:8px;font-size:11px">{level}</span>')
 
 
-def _get_applied_urls() -> set:
-    """Lit les deux fichiers Excel et retourne les URLs des offres déjà postulées."""
-    from core.excel_output import EXCEL_PATH_RESEAUX, EXCEL_PATH_AUTOMATISME
+def _get_applied_urls(excel_paths: list = None) -> set:
+    from core.excel_output import EXCEL_PATH_RESEAUX, EXCEL_PATH_AUTOMATISME, EXCEL_PATH_JAVA
     from openpyxl import load_workbook
+    paths = excel_paths or [EXCEL_PATH_RESEAUX, EXCEL_PATH_AUTOMATISME, EXCEL_PATH_JAVA]
     applied = set()
-    for path in [EXCEL_PATH_RESEAUX, EXCEL_PATH_AUTOMATISME]:
+    for path in paths:
         if not os.path.isfile(path):
             continue
         try:
             wb = load_workbook(path, read_only=True)
             ws = wb.active
-            # Détection dynamique de la colonne Statut via l'en-tête
-            statut_col = 4  # valeur par défaut (nouveau format)
+            statut_col = 4
             url_col = 3
             for col in range(1, (ws.max_column or 20) + 1):
                 header = ws.cell(1, col).value
@@ -77,7 +86,8 @@ def _skills_chips(skills: list, color: str) -> str:
         return '<span style="color:#555;font-size:11px">—</span>'
     chips = "".join(
         f'<span style="background:{color}22;color:{color};border:1px solid {color}55;'
-        f'padding:1px 7px;border-radius:10px;font-size:10px;margin:1px 2px 1px 0;display:inline-block">{s}</span>'
+        f'padding:1px 7px;border-radius:10px;font-size:10px;margin:1px 2px 1px 0;'
+        f'display:inline-block">{s}</span>'
         for s in skills[:6]
     )
     return chips
@@ -151,7 +161,8 @@ def _top_priority_section(jobs: list, color: str, applied_urls: set) -> str:
     """
 
 
-def _build_html(jobs: list, run_at: datetime, domain: str, applied_urls: set = None) -> str:
+def _build_html(jobs: list, run_at: datetime, domain: str,
+                applied_urls: set = None, recipient_name: str = "Stephane NANDJOU TONLEU") -> str:
     applied_urls = applied_urls or set()
     label = DOMAIN_LABELS.get(domain, domain)
     color = DOMAIN_COLORS.get(domain, "#1565C0")
@@ -194,7 +205,8 @@ def _build_html(jobs: list, run_at: datetime, domain: str, applied_urls: set = N
     <head><meta charset="UTF-8"></head>
     <body style="background:#081226;font-family:Calibri,Arial,sans-serif;margin:0;padding:20px">
       <div style="max-width:1050px;margin:0 auto">
-        <div style="background:#0D1B2A;border-radius:12px;padding:24px;margin-bottom:20px;border-left:4px solid {color}">
+        <div style="background:#0D1B2A;border-radius:12px;padding:24px;margin-bottom:20px;
+                    border-left:4px solid {color}">
           <h1 style="color:{color};margin:0;font-size:22px">Job Agent - {label}</h1>
           <p style="color:#9E9E9E;margin:8px 0 0;font-size:13px">
             {run_at.strftime("%d/%m/%Y a %H:%M")} ·
@@ -221,12 +233,28 @@ def _build_html(jobs: list, run_at: datetime, domain: str, applied_urls: set = N
           </table>
         </div>
         <p style="color:#4A5568;font-size:11px;text-align:center;margin-top:16px">
-          Job Agent · Stephane NANDJOU TONLEU · Ingenieur Reseaux &amp; Securite / Automaticien
+          Job Agent · {recipient_name}
         </p>
       </div>
     </body>
     </html>
     """
+
+
+def _attach_file(msg, path: str, filename: str = None):
+    if path and os.path.isfile(path):
+        with open(path, "rb") as f:
+            data = f.read()
+        ext = os.path.splitext(path)[1].lower()
+        subtype = "vnd.openxmlformats-officedocument.spreadsheetml.sheet" if ext == ".xlsx" else "pdf"
+        part = MIMEApplication(data, _subtype=subtype)
+        part.add_header("Content-Disposition", "attachment",
+                        filename=filename or os.path.basename(path))
+        msg.attach(part)
+        print(f"[Email] PJ : {filename or os.path.basename(path)}")
+        return True
+    print(f"[Email] Fichier introuvable — PJ ignoree ({path})")
+    return False
 
 
 def send_alert(jobs: list, run_at: datetime = None):
@@ -238,7 +266,7 @@ def send_alert(jobs: list, run_at: datetime = None):
         return
 
     run_at = run_at or datetime.now()
-    applied_urls = _get_applied_urls()
+    applied_urls = _get_applied_urls([])
     if applied_urls:
         print(f"[Email] {len(applied_urls)} offre(s) deja postulees — marquees dans l'email")
 
@@ -258,7 +286,6 @@ def send_alert(jobs: list, run_at: datetime = None):
         msg["To"] = NOTIFY_EMAIL
 
         alt = MIMEMultipart("alternative")
-
         plain = f"{len(domain_jobs)} offre(s) {label} le {run_at.strftime('%d/%m/%Y a %H:%M')}.\n\n"
         for job in domain_jobs:
             applied_tag = " [DEJA POSTULE]" if job.url in applied_urls else ""
@@ -266,23 +293,14 @@ def send_alert(jobs: list, run_at: datetime = None):
                 f"- {job.title} — {job.company} ({job.location}){applied_tag}\n"
                 f"  {job.url}\n  Score: {job.relevance_score}/100\n\n"
             )
-
         alt.attach(MIMEText(plain, "plain"))
-        alt.attach(MIMEText(_build_html(domain_jobs, run_at, domain, applied_urls), "html"))
+        alt.attach(MIMEText(
+            _build_html(domain_jobs, run_at, domain, applied_urls,
+                        recipient_name="Stephane NANDJOU TONLEU · Ingenieur Reseaux &amp; Securite / Automaticien"),
+            "html",
+        ))
         msg.attach(alt)
-
-        # CV en pièce jointe
-        cv_path = CV_PATHS.get(domain, "")
-        if cv_path and os.path.isfile(cv_path):
-            with open(cv_path, "rb") as f:
-                cv_data = f.read()
-            cv_part = MIMEApplication(cv_data, _subtype="pdf")
-            cv_filename = os.path.basename(cv_path)
-            cv_part.add_header("Content-Disposition", "attachment", filename=cv_filename)
-            msg.attach(cv_part)
-            print(f"[Email] CV joint : {cv_filename}")
-        else:
-            print(f"[Email] CV introuvable pour {label} — PJ ignoree ({cv_path})")
+        _attach_file(msg, CV_PATHS.get(domain, ""))
 
         try:
             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
@@ -291,3 +309,57 @@ def send_alert(jobs: list, run_at: datetime = None):
             print(f"[Email] OK {label} : {len(domain_jobs)} offres envoyees a {NOTIFY_EMAIL}")
         except Exception as e:
             print(f"[Email] ERREUR {label} : {e}")
+
+
+def send_alert_brenda(jobs: list, run_at: datetime = None):
+    from core.excel_output import EXCEL_PATH_JAVA
+
+    if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
+        print("[Email Brenda] Credentials Gmail manquants — email ignore")
+        return
+    if not jobs:
+        print("[Email Brenda] Aucune nouvelle offre Java — email non envoye")
+        return
+
+    run_at = run_at or datetime.now()
+    applied_urls = _get_applied_urls([EXCEL_PATH_JAVA])
+    if applied_urls:
+        print(f"[Email Brenda] {len(applied_urls)} offre(s) deja postulees")
+
+    label = DOMAIN_LABELS[DOMAIN_JAVA]
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = (
+        f"[Job Agent - {label}] {len(jobs)} offre(s)"
+        f" — {run_at.strftime('%d/%m/%Y %H:%M')}"
+    )
+    msg["From"] = GMAIL_ADDRESS
+    msg["To"] = BRENDA_EMAIL
+
+    alt = MIMEMultipart("alternative")
+    plain = f"Bonjour Brenda,\n\n{len(jobs)} nouvelle(s) offre(s) Java detectee(s) le {run_at.strftime('%d/%m/%Y a %H:%M')}.\n\n"
+    for job in jobs:
+        applied_tag = " [DEJA POSTULE]" if job.url in applied_urls else ""
+        plain += (
+            f"- {job.title} — {job.company} ({job.location}){applied_tag}\n"
+            f"  {job.url}\n  Score: {job.relevance_score}/100\n\n"
+        )
+    alt.attach(MIMEText(plain, "plain"))
+    alt.attach(MIMEText(
+        _build_html(jobs, run_at, DOMAIN_JAVA, applied_urls,
+                    recipient_name="Brenda KOUDJA · Ingenieure Logiciel Java"),
+        "html",
+    ))
+    msg.attach(alt)
+
+    # Excel Java en pièce jointe
+    _attach_file(msg, EXCEL_PATH_JAVA, filename="jobs_java.xlsx")
+    # CV de Brenda en pièce jointe
+    _attach_file(msg, CV_PATH_JAVA)
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+            server.sendmail(GMAIL_ADDRESS, BRENDA_EMAIL, msg.as_string())
+        print(f"[Email Brenda] OK : {len(jobs)} offres envoyees a {BRENDA_EMAIL}")
+    except Exception as e:
+        print(f"[Email Brenda] ERREUR : {e}")

@@ -59,7 +59,8 @@ def _parse_region(lieu: str) -> str:
     return "Autre région"
 
 
-def _build_job(offer: dict, now: datetime) -> Job:
+def _build_job(offer: dict, now: datetime,
+               cv_skills: list = None, target_titles: list = None) -> Job:
     title = offer.get("intitule", "Sans titre")
     company = (offer.get("entreprise") or {}).get("nom", "Entreprise NC")
     lieu = (offer.get("lieuTravail") or {}).get("libelle", "NC")
@@ -76,9 +77,13 @@ def _build_job(offer: dict, now: datetime) -> Job:
     url = (offer.get("origineOffre") or {}).get("urlOrigine", "") or \
           f"https://candidat.francetravail.fr/offres/emploi/detail/{offer.get('id', '')}"
     job_id = offer.get("id") or hashlib.md5(f"{title}{company}{lieu}".encode()).hexdigest()
+    contact = offer.get("contact") or {}
+    phone = contact.get("telephone", "") or ""
+    email_contact = contact.get("courriel", "") or ""
     exp_level = detect_experience_level(title, description)
-    skills = detect_skills(title, description)
-    score = compute_score(title, description, lieu, age_hours, exp_level, region)
+    skills = detect_skills(title, description, cv_skills=cv_skills)
+    score = compute_score(title, description, lieu, age_hours, exp_level, region,
+                          cv_skills=cv_skills, target_titles=target_titles)
 
     return Job(
         id=job_id,
@@ -97,10 +102,13 @@ def _build_job(offer: dict, now: datetime) -> Job:
         skills_detected=skills,
         experience_level=exp_level,
         relevance_score=score,
+        phone=phone,
+        email_contact=email_contact,
     )
 
 
-def fetch_jobs() -> list:
+def fetch_jobs(keywords: list = None, cv_skills: list = None,
+               target_titles: list = None) -> list:
     if not FT_CLIENT_ID or not FT_CLIENT_SECRET:
         print("[France Travail] ⚠️  Credentials manquants — source ignorée")
         return []
@@ -111,12 +119,13 @@ def fetch_jobs() -> list:
         print(f"[France Travail] ERREUR Erreur token : {e}")
         return []
 
+    _keywords = keywords if keywords is not None else SEARCH_KEYWORDS
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
     now = datetime.now(timezone.utc)
     jobs = []
     seen_ids = set()
 
-    for keyword in SEARCH_KEYWORDS:
+    for keyword in _keywords:
         params = {
             "motsCles": keyword,
             "typeContrat": "CDI",
@@ -125,7 +134,7 @@ def fetch_jobs() -> list:
         }
         try:
             resp = requests.get(FT_SEARCH_URL, headers=headers, params=params, timeout=15)
-            if resp.status_code == 206 or resp.status_code == 200:
+            if resp.status_code in (200, 206):
                 data = resp.json()
                 for offer in data.get("resultats", []):
                     job_id = offer.get("id", "")
@@ -133,7 +142,9 @@ def fetch_jobs() -> list:
                         continue
                     seen_ids.add(job_id)
                     try:
-                        job = _build_job(offer, now)
+                        job = _build_job(offer, now,
+                                         cv_skills=cv_skills,
+                                         target_titles=target_titles)
                         if job.age_hours <= MAX_JOB_AGE_HOURS:
                             jobs.append(job)
                     except Exception:

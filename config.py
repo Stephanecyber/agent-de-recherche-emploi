@@ -19,6 +19,11 @@ CV_PATH_AUTOMATISME = os.getenv(
 )
 ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
+CV_PATH_JAVA = os.getenv(
+    "CV_PATH_JAVA",
+    r"C:\Users\Dell\Downloads\CV_Brenda_KOUDJA.pdf",
+)
+BRENDA_EMAIL = os.getenv("BRENDA_EMAIL", "brendakoudja@gmail.com")
 
 # --- Critères de recherche ---
 MAX_JOB_AGE_HOURS = 24
@@ -169,4 +174,71 @@ CV_SKILLS = [
     "python", "sql", "java", "glpi", "agile", "scrum",
     # Certif / Méthodes
     "teexma", "gns3", "cisco",
+]
+
+# ─────────────────────────────────────────────
+# Config Brenda KOUDJA — Java & Backend
+# ─────────────────────────────────────────────
+
+JAVA_SEARCH_KEYWORDS = [
+    "développeur java junior",
+    "développeuse java junior",
+    "java spring boot junior",
+    "java microservices junior",
+    "java backend junior",
+    "java post-trading",
+    "java finance junior",
+    "java devops junior",
+    "java devsecops",
+    "java fullstack junior",
+    "java rest api",
+    "java hibernate",
+    "ingénieur logiciel java",
+    "développeur java j2ee",
+    "java multithreading",
+]
+
+JAVA_ADZUNA_KEYWORDS = [
+    "développeur java junior",
+    "java spring boot",
+    "java microservices",
+    "java backend",
+    "java devops",
+    "java fintech",
+    "java post-trading",
+    "java rest api",
+    "ingénieur java",
+]
+
+JAVA_TARGET_TITLES = [
+    "développeur java", "développeuse java", "developer java",
+    "ingénieur java", "ingénieure java", "ingénieur logiciel java",
+    "java backend", "java spring boot", "java microservices",
+    "java fullstack", "java post-trading", "java devops",
+    "java devsecops", "java fintech", "java rest api",
+    "java hibernate", "java j2ee", "java developer",
+    "software engineer java", "java multithreading",
+]
+
+JAVA_CV_SKILLS = [
+    # Java core
+    "java", "j2ee", "hibernate", "jfox", "xmlbeans", "slick 2d",
+    "spring", "spring boot", "microservices", "multithreading",
+    # Finance / protocoles
+    "fix", "protocole fix", "post-trading", "listed derivatives",
+    # DevOps / CI-CD
+    "docker", "jenkins", "gitlab", "sonarqube", "grype",
+    "jmeter", "ansible", "haproxy", "prometheus", "grafana",
+    "ci/cd", "pipeline", "devops", "devsecops",
+    # Backend / API
+    "node.js", "nodejs", "rest api", "api rest",
+    "maven", "eclipse",
+    # Bases de données
+    "postgresql", "oracle sql", "sql",
+    # Sécurité
+    "iam", "owasp", "sécurité applicative",
+    # Langages secondaires
+    "python", "javascript", "php",
+    # Méthodes
+    "poo", "uml", "merise", "linux",
 ]

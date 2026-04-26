@@ -5,11 +5,12 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
-from core.domain_classifier import DOMAIN_RESEAUX, DOMAIN_AUTOMATISME
+from core.domain_classifier import DOMAIN_RESEAUX, DOMAIN_AUTOMATISME, DOMAIN_JAVA
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 EXCEL_PATH_RESEAUX = os.path.join(DATA_DIR, "jobs_reseaux_secu.xlsx")
 EXCEL_PATH_AUTOMATISME = os.path.join(DATA_DIR, "jobs_automatisme.xlsx")
+EXCEL_PATH_JAVA = os.path.join(DATA_DIR, "jobs_java.xlsx")
 
 # Colonnes ordonnées : les plus utiles d'abord (visibles sans scroll)
 COLUMNS = [
@@ -18,7 +19,7 @@ COLUMNS = [
     ("Lien de l'offre", 42),        # 3
     ("Statut", 14),                 # 4
     ("Date publication", 20),       # 5
-    ("Niveau experience", 18),      # 6  ← rapproché de Date publication
+    ("Niveau experience", 18),      # 6
     ("Score /100", 12),             # 7
     ("Source", 18),                 # 8
     ("Lieu", 24),                   # 9
@@ -29,26 +30,32 @@ COLUMNS = [
     ("Age (h)", 10),                # 14
     ("Resume description", 60),     # 15
     ("Competences detectees", 36),  # 16
-    ("Notes personnelles", 30),     # 17
-    ("Detecte le", 20),             # 18
+    ("Telephone", 18),              # 17
+    ("Email recruteur", 30),        # 18
+    ("Notes personnelles", 30),     # 19
+    ("Detecte le", 20),             # 20
 ]
 
-# Indice des colonnes clés (1-based)
+# Indices des colonnes clés (1-based)
 COL_STATUT = 4
 COL_DATE_PUB = 5
 COL_NIVEAU = 6
 COL_SCORE = 7
 COL_LIEN = 3
-COL_NOTES = 17
-COL_DETECTE = 18
+COL_PHONE = 17
+COL_EMAIL_CONTACT = 18
+COL_NOTES = 19
+COL_DETECTE = 20
 
 HEADER_FILL_RESEAUX = PatternFill("solid", fgColor="1565C0")
 HEADER_FILL_AUTOMATISME = PatternFill("solid", fgColor="2E7D32")
+HEADER_FILL_JAVA = PatternFill("solid", fgColor="E65100")
 HEADER_FONT = Font(bold=True, color="FFFFFF", size=10, name="Calibri")
 
 ROW_FILL_ODD = PatternFill("solid", fgColor="FFFFFF")
 ROW_FILL_EVEN_RESEAUX = PatternFill("solid", fgColor="EEF4FF")
 ROW_FILL_EVEN_AUTOMATISME = PatternFill("solid", fgColor="E8F5E9")
+ROW_FILL_EVEN_JAVA = PatternFill("solid", fgColor="FFF3E0")
 
 SCORE_HIGH_FILL = PatternFill("solid", fgColor="C8F5D8")
 SCORE_MED_FILL = PatternFill("solid", fgColor="FFF9C4")
@@ -65,13 +72,11 @@ THIN = Border(
 TEXT_COLOR = "1A1A2E"
 LINK_COLOR_RESEAUX = "1565C0"
 LINK_COLOR_AUTOMATISME = "2E7D32"
+LINK_COLOR_JAVA = "E65100"
 MUTED_COLOR = "546E7A"
 NEW_STATUS_COLOR = "1B5E20"
 
-# Valeurs autorisées dans le dropdown Statut
 STATUS_VALUES = "Nouveau,Postulé,Entretien,Refusé,Abandonné"
-
-# Nombre max de lignes couvertes par la validation et le formatage conditionnel
 MAX_ROWS = 2000
 
 
@@ -92,12 +97,10 @@ def _score_font_color(score: int) -> str:
 
 
 def _add_status_validation_and_cf(ws):
-    """Ajoute le dropdown Statut et le formatage conditionnel sur les lignes."""
     col_letter = get_column_letter(COL_STATUT)
     data_range = f"{col_letter}2:{col_letter}{MAX_ROWS}"
     row_range = f"A2:{get_column_letter(len(COLUMNS))}{MAX_ROWS}"
 
-    # Dropdown
     dv = DataValidation(
         type="list",
         formula1=f'"{STATUS_VALUES}"',
@@ -108,7 +111,6 @@ def _add_status_validation_and_cf(ws):
     ws.add_data_validation(dv)
     dv.sqref = data_range
 
-    # Ligne "Postulé" → violet/indigo
     ws.conditional_formatting.add(
         row_range,
         FormulaRule(
@@ -118,8 +120,6 @@ def _add_status_validation_and_cf(ws):
             stopIfTrue=True,
         ),
     )
-
-    # Ligne "Entretien" → cyan clair
     ws.conditional_formatting.add(
         row_range,
         FormulaRule(
@@ -129,8 +129,6 @@ def _add_status_validation_and_cf(ws):
             stopIfTrue=True,
         ),
     )
-
-    # Ligne "Refusé" → rouge pâle
     ws.conditional_formatting.add(
         row_range,
         FormulaRule(
@@ -140,8 +138,6 @@ def _add_status_validation_and_cf(ws):
             stopIfTrue=True,
         ),
     )
-
-    # Ligne "Abandonné" → gris
     ws.conditional_formatting.add(
         row_range,
         FormulaRule(
@@ -159,6 +155,10 @@ def _create_workbook(domain: str) -> Workbook:
         ws.title = "Reseaux & Securite"
         ws.sheet_properties.tabColor = "1565C0"
         header_fill = HEADER_FILL_RESEAUX
+    elif domain == DOMAIN_JAVA:
+        ws.title = "Java & Backend"
+        ws.sheet_properties.tabColor = "E65100"
+        header_fill = HEADER_FILL_JAVA
     else:
         ws.title = "Automatisme & Systemes"
         ws.sheet_properties.tabColor = "2E7D32"
@@ -184,10 +184,23 @@ def _create_workbook(domain: str) -> Workbook:
 
 def _add_job_row(ws, job, row_idx: int, domain: str):
     is_reseaux = domain == DOMAIN_RESEAUX
-    base_fill = ROW_FILL_ODD if row_idx % 2 != 0 else (
-        ROW_FILL_EVEN_RESEAUX if is_reseaux else ROW_FILL_EVEN_AUTOMATISME
-    )
-    link_color = LINK_COLOR_RESEAUX if is_reseaux else LINK_COLOR_AUTOMATISME
+    is_java = domain == DOMAIN_JAVA
+    if row_idx % 2 != 0:
+        base_fill = ROW_FILL_ODD
+    elif is_reseaux:
+        base_fill = ROW_FILL_EVEN_RESEAUX
+    elif is_java:
+        base_fill = ROW_FILL_EVEN_JAVA
+    else:
+        base_fill = ROW_FILL_EVEN_AUTOMATISME
+
+    if is_reseaux:
+        link_color = LINK_COLOR_RESEAUX
+    elif is_java:
+        link_color = LINK_COLOR_JAVA
+    else:
+        link_color = LINK_COLOR_AUTOMATISME
+
     score = job.relevance_score
 
     pub_local = job.published_at.astimezone().replace(tzinfo=None) \
@@ -195,26 +208,27 @@ def _add_job_row(ws, job, row_idx: int, domain: str):
     detected_local = job.detected_at.astimezone().replace(tzinfo=None) \
         if job.detected_at.tzinfo else job.detected_at
 
-    # Ordre des valeurs aligné sur COLUMNS
     values = [
-        job.title,                                                     # 1  Titre
-        job.company,                                                   # 2  Entreprise
-        job.url,                                                       # 3  Lien
-        job.status,                                                    # 4  Statut
-        pub_local,                                                     # 5  Date publication
-        job.experience_level,                                          # 6  Niveau experience
-        score,                                                         # 7  Score
-        job.source,                                                    # 8  Source
-        job.location,                                                  # 9  Lieu
-        job.region,                                                    # 10 Region
-        job.salary,                                                    # 11 Salaire
-        job.remote,                                                    # 12 Teletravail
-        job.contract_type,                                             # 13 Contrat
-        job.age_hours,                                                 # 14 Age (h)
-        job.description,                                               # 15 Resume description
-        ", ".join(job.skills_detected) if job.skills_detected else "", # 16 Competences
-        job.notes,                                                     # 17 Notes
-        detected_local,                                                # 18 Detecte le
+        job.title,                                                      # 1  Titre
+        job.company,                                                    # 2  Entreprise
+        job.url,                                                        # 3  Lien
+        job.status,                                                     # 4  Statut
+        pub_local,                                                      # 5  Date publication
+        job.experience_level,                                           # 6  Niveau experience
+        score,                                                          # 7  Score
+        job.source,                                                     # 8  Source
+        job.location,                                                   # 9  Lieu
+        job.region,                                                     # 10 Region
+        job.salary,                                                     # 11 Salaire
+        job.remote,                                                     # 12 Teletravail
+        job.contract_type,                                              # 13 Contrat
+        job.age_hours,                                                  # 14 Age (h)
+        job.description,                                                # 15 Resume description
+        ", ".join(job.skills_detected) if job.skills_detected else "",  # 16 Competences
+        job.phone,                                                      # 17 Telephone
+        job.email_contact,                                              # 18 Email recruteur
+        job.notes,                                                      # 19 Notes
+        detected_local,                                                 # 20 Detecte le
     ]
 
     for col_idx, value in enumerate(values, start=1):
@@ -222,19 +236,27 @@ def _add_job_row(ws, job, row_idx: int, domain: str):
         cell.border = THIN
         cell.alignment = Alignment(
             vertical="center",
-            wrap_text=(col_idx in (1, 15, 16, 17)),
+            wrap_text=(col_idx in (1, 15, 16, 19)),
             horizontal="left",
         )
 
-        if col_idx == COL_SCORE:  # 7
+        if col_idx == COL_SCORE:
             cell.fill = _score_fill(score)
             cell.font = Font(bold=True, color=_score_font_color(score), name="Calibri", size=10)
             cell.alignment = Alignment(horizontal="center", vertical="center")
-        elif col_idx == COL_LIEN:  # 3
+        elif col_idx == COL_LIEN:
             cell.hyperlink = value or ""
             cell.font = Font(color=link_color, underline="single", name="Calibri", size=10)
             cell.fill = base_fill
-        elif col_idx == COL_STATUT:  # 4
+        elif col_idx == COL_PHONE and value:
+            cell.hyperlink = f"tel:{value}"
+            cell.font = Font(color=link_color, underline="single", name="Calibri", size=10)
+            cell.fill = base_fill
+        elif col_idx == COL_EMAIL_CONTACT and value:
+            cell.hyperlink = f"mailto:{value}"
+            cell.font = Font(color=link_color, underline="single", name="Calibri", size=10)
+            cell.fill = base_fill
+        elif col_idx == COL_STATUT:
             val_str = str(value or "")
             is_applied = "postul" in val_str.lower()
             is_new = "Nouveau" in val_str
@@ -247,11 +269,11 @@ def _add_job_row(ws, job, row_idx: int, domain: str):
             else:
                 cell.fill = base_fill
                 cell.font = Font(color=TEXT_COLOR, name="Calibri", size=10)
-        elif col_idx in (8, 12, 13, 14):  # Source, Teletravail, Contrat, Age
+        elif col_idx in (8, 12, 13, 14):
             cell.fill = base_fill
             cell.font = Font(color=MUTED_COLOR, name="Calibri", size=10)
             cell.alignment = Alignment(horizontal="center", vertical="center")
-        elif col_idx == COL_NIVEAU:  # 6
+        elif col_idx == COL_NIVEAU:
             cell.fill = base_fill
             cell.font = Font(color=MUTED_COLOR, name="Calibri", size=10)
             cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -262,15 +284,13 @@ def _add_job_row(ws, job, row_idx: int, domain: str):
             cell.fill = base_fill
             cell.font = Font(color=TEXT_COLOR, name="Calibri", size=10)
 
-        if col_idx in (COL_DATE_PUB, COL_DETECTE):  # 5, 18
+        if col_idx in (COL_DATE_PUB, COL_DETECTE):
             cell.number_format = "DD/MM/YYYY HH:MM"
 
     ws.row_dimensions[row_idx].height = 38
 
 
 def _detect_col_map(ws) -> dict:
-    """Lit l'en-tête ligne 1 et retourne {nom_colonne: index_1based}.
-    Permet de lire les anciens fichiers même si les colonnes ont été réordonnées."""
     return {
         ws.cell(1, col).value: col
         for col in range(1, ws.max_column + 1)
@@ -300,29 +320,31 @@ def _read_existing_jobs(ws, domain: str) -> list:
                 pub = datetime.fromisoformat(pub)
             det_raw = v(c("Detecte le", COL_DETECTE))
             detected = datetime.fromisoformat(det_raw) if isinstance(det_raw, str) else det_raw
-            skills_raw = v(c("Competences detectees", 15)) or ""
+            skills_raw = v(c("Competences detectees", 16)) or ""
             skills = [s.strip() for s in skills_raw.split(",") if s.strip()]
             job = Job(
                 id=str(row_idx),
                 title=title or "",
                 company=v(c("Entreprise", 2)) or "",
                 url=v(c("Lien de l'offre", 3)) or "",
-                source=v(c("Source", 7)) or "",
-                location=v(c("Lieu", 8)) or "",
-                region=v(c("Region", 9)) or "",
-                salary=v(c("Salaire", 10)) or "NC",
-                remote=v(c("Teletravail", 11)) or "NC",
-                contract_type=v(c("Contrat", 12)) or "NC",
+                source=v(c("Source", 8)) or "",
+                location=v(c("Lieu", 9)) or "",
+                region=v(c("Region", 10)) or "",
+                salary=v(c("Salaire", 11)) or "NC",
+                remote=v(c("Teletravail", 12)) or "NC",
+                contract_type=v(c("Contrat", 13)) or "NC",
                 published_at=pub or datetime.now(),
-                age_hours=float(v(c("Age (h)", 13)) or 0),
+                age_hours=float(v(c("Age (h)", 14)) or 0),
                 relevance_score=int(v(c("Score /100", COL_SCORE)) or 0),
-                description=v(c("Resume description", 14)) or "",
+                description=v(c("Resume description", 15)) or "",
                 skills_detected=skills,
-                experience_level=v(c("Niveau experience", 16)) or "NC",
+                experience_level=v(c("Niveau experience", COL_NIVEAU)) or "NC",
                 status=v(c("Statut", COL_STATUT)) or "Nouveau",
                 notes=v(c("Notes personnelles", COL_NOTES)) or "",
                 detected_at=detected or datetime.now(),
                 domain=domain,
+                phone=v(c("Telephone")) or "",
+                email_contact=v(c("Email recruteur")) or "",
             )
             jobs.append(job)
         except Exception:
@@ -362,6 +384,7 @@ def _save_domain_jobs(jobs: list, path: str, domain: str) -> str:
 def save_jobs(jobs: list) -> tuple:
     reseaux_jobs = [j for j in jobs if j.domain == DOMAIN_RESEAUX]
     auto_jobs = [j for j in jobs if j.domain == DOMAIN_AUTOMATISME]
+    java_jobs = [j for j in jobs if j.domain == DOMAIN_JAVA]
 
     paths = []
     if reseaux_jobs:
@@ -371,6 +394,10 @@ def save_jobs(jobs: list) -> tuple:
     if auto_jobs:
         path = _save_domain_jobs(auto_jobs, EXCEL_PATH_AUTOMATISME, DOMAIN_AUTOMATISME)
         print(f"Excel Automatisme & Systemes : {path} ({len(auto_jobs)} offres)")
+        paths.append(path)
+    if java_jobs:
+        path = _save_domain_jobs(java_jobs, EXCEL_PATH_JAVA, DOMAIN_JAVA)
+        print(f"Excel Java & Backend : {path} ({len(java_jobs)} offres)")
         paths.append(path)
 
     return tuple(paths)

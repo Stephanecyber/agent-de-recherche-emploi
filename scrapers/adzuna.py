@@ -42,7 +42,8 @@ def _parse_remote(description: str) -> str:
     return "Aucun"
 
 
-def _build_job(item: dict, now: datetime) -> Job:
+def _build_job(item: dict, now: datetime,
+               cv_skills: list = None, target_titles: list = None) -> Job:
     title = item.get("title", "") or "Sans titre"
     company = (item.get("company") or {}).get("display_name", "Entreprise NC") or "Entreprise NC"
     location_data = item.get("location") or {}
@@ -74,8 +75,9 @@ def _build_job(item: dict, now: datetime) -> Job:
     url = item.get("redirect_url", "") or item.get("adref", "") or "https://www.adzuna.fr"
     job_id = str(item.get("id") or hashlib.md5(f"{title}{company}{lieu}".encode()).hexdigest())
     exp_level = detect_experience_level(title, description)
-    skills = detect_skills(title, description)
-    score = compute_score(title, description, lieu, age_hours, exp_level, region)
+    skills = detect_skills(title, description, cv_skills=cv_skills)
+    score = compute_score(title, description, lieu, age_hours, exp_level, region,
+                          cv_skills=cv_skills, target_titles=target_titles)
 
     return Job(
         id=f"adzuna_{job_id}",
@@ -94,10 +96,13 @@ def _build_job(item: dict, now: datetime) -> Job:
         skills_detected=skills,
         experience_level=exp_level,
         relevance_score=score,
+        phone="",
+        email_contact="",
     )
 
 
-def _fetch_for_keyword(keyword: str, now: datetime) -> list:
+def _fetch_for_keyword(keyword: str, now: datetime,
+                       cv_skills: list = None, target_titles: list = None) -> list:
     jobs = []
     seen_ids = set()
     params_base = {
@@ -124,13 +129,14 @@ def _fetch_for_keyword(keyword: str, now: datetime) -> list:
                         continue
                     if jid:
                         seen_ids.add(jid)
-                    job = _build_job(item, now)
+                    job = _build_job(item, now,
+                                     cv_skills=cv_skills, target_titles=target_titles)
                     if job.age_hours <= MAX_JOB_AGE_HOURS:
                         jobs.append(job)
                 if len(results) < 50:
                     break
             elif r.status_code == 401:
-                print(f"[Adzuna] ERREUR Clé API invalide — vérifier ADZUNA_APP_ID et ADZUNA_APP_KEY dans .env")
+                print("[Adzuna] ERREUR Clé API invalide — vérifier ADZUNA_APP_ID et ADZUNA_APP_KEY dans .env")
                 break
             else:
                 break
@@ -139,18 +145,20 @@ def _fetch_for_keyword(keyword: str, now: datetime) -> list:
     return jobs
 
 
-def fetch_jobs() -> list:
+def fetch_jobs(keywords: list = None, cv_skills: list = None,
+               target_titles: list = None) -> list:
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
-        print("[Adzuna] [pause]  Source désactivée — ADZUNA_APP_ID / ADZUNA_APP_KEY non configurés dans .env")
+        print("[Adzuna] Source désactivée — ADZUNA_APP_ID / ADZUNA_APP_KEY non configurés dans .env")
         return []
 
+    _keywords = keywords if keywords is not None else ADZUNA_KEYWORDS
     now = datetime.now(timezone.utc)
     all_jobs = []
     seen_global = set()
 
-    print(f"[Adzuna] Recherche sur {len(ADZUNA_KEYWORDS)} mots-clés...")
-    for kw in ADZUNA_KEYWORDS:
-        jobs = _fetch_for_keyword(kw, now)
+    print(f"[Adzuna] Recherche sur {len(_keywords)} mots-clés...")
+    for kw in _keywords:
+        jobs = _fetch_for_keyword(kw, now, cv_skills=cv_skills, target_titles=target_titles)
         for j in jobs:
             if j.id not in seen_global:
                 seen_global.add(j.id)

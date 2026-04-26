@@ -25,6 +25,8 @@ class Job:
     status: str = "Nouveau"
     notes: str = ""
     domain: str = "Reseaux & Securite"
+    phone: str = ""
+    email_contact: str = ""
 
     def unique_key(self) -> str:
         return f"{self.source}::{self.id}"

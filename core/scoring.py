@@ -1,8 +1,12 @@
-from config import TARGET_JOB_TITLES, CV_SKILLS, JUNIOR_KEYWORDS, LOCATIONS_IDF
+from config import TARGET_JOB_TITLES, CV_SKILLS, JUNIOR_KEYWORDS
 
 
 def compute_score(title: str, description: str, location: str, age_hours: float,
-                  experience_level: str, region: str) -> int:
+                  experience_level: str, region: str,
+                  cv_skills: list = None, target_titles: list = None) -> int:
+    _skills = cv_skills if cv_skills is not None else CV_SKILLS
+    _titles = target_titles if target_titles is not None else TARGET_JOB_TITLES
+
     score = 0
     title_lower = title.lower()
     desc_lower = description.lower()
@@ -10,7 +14,7 @@ def compute_score(title: str, description: str, location: str, age_hours: float,
 
     # Correspondance titre cible (+40 pts max)
     title_score = 0
-    for target in TARGET_JOB_TITLES:
+    for target in _titles:
         if target in title_lower:
             title_score = 40
             break
@@ -21,7 +25,7 @@ def compute_score(title: str, description: str, location: str, age_hours: float,
     score += title_score
 
     # Compétences CV détectées dans la description (+30 pts max)
-    skills_found = [s for s in CV_SKILLS if s in combined]
+    skills_found = [s for s in _skills if s in combined]
     skill_score = min(30, len(skills_found) * 3)
     score += skill_score
 
@@ -52,9 +56,10 @@ def compute_score(title: str, description: str, location: str, age_hours: float,
     return min(score, 100)
 
 
-def detect_skills(title: str, description: str) -> list:
+def detect_skills(title: str, description: str, cv_skills: list = None) -> list:
+    _skills = cv_skills if cv_skills is not None else CV_SKILLS
     combined = (title + " " + description).lower()
-    return [s for s in CV_SKILLS if s in combined]
+    return [s for s in _skills if s in combined]
 
 
 def detect_experience_level(title: str, description: str) -> str:
