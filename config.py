@@ -23,7 +23,7 @@ CV_PATH_JAVA = os.getenv(
     "CV_PATH_JAVA",
     r"C:\Users\Dell\job-agent\Cv de Brenda\CV_Brenda_KOUDJA.pdf",
 )
-BRENDA_EMAIL = os.getenv("BRENDA_EMAIL", "brendakoudja@gmail.com")
+BRENDA_EMAIL = os.getenv("BRENDA_EMAIL", "Stellagueteu@gmail.com")
 
 # --- Critères de recherche ---
 MAX_JOB_AGE_HOURS = 24

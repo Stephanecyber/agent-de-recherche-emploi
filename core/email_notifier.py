@@ -171,6 +171,15 @@ def _build_html(jobs: list, run_at: datetime, domain: str,
     for job in jobs:
         skills_html = _skills_chips(job.skills_detected, color)
         btn = _apply_btn(job.url, color, applied_urls, big=False)
+        phone_html = (
+            f'<a href="tel:{job.phone}" style="color:{color};text-decoration:none">{job.phone}</a>'
+            if job.phone else '<span style="color:#555">—</span>'
+        )
+        email_html = (
+            f'<a href="mailto:{job.email_contact}" style="color:{color};text-decoration:none">{job.email_contact}</a>'
+            if job.email_contact else '<span style="color:#555">—</span>'
+        )
+        pub_str = job.published_at.strftime("%d/%m %H:%M") if job.published_at else "—"
         rows += f"""
         <tr style="border-bottom:1px solid #1E3A5F;">
           <td style="padding:10px 8px;color:#E0E0E0;font-size:13px">
@@ -183,10 +192,13 @@ def _build_html(jobs: list, run_at: datetime, domain: str,
           <td style="padding:10px 8px;color:#E0E0E0;font-size:12px">{job.location}</td>
           <td style="padding:10px 8px;color:#E0E0E0;font-size:12px">{job.salary}</td>
           <td style="padding:10px 8px;color:#E0E0E0;font-size:12px">{job.remote}</td>
+          <td style="padding:10px 8px;font-size:12px">{phone_html}</td>
+          <td style="padding:10px 8px;font-size:11px">{email_html}</td>
           <td style="padding:10px 8px;font-size:12px">{_exp_badge(job.experience_level)}</td>
           <td style="padding:10px 8px;font-size:12px;text-align:center">
             {_score_badge(job.relevance_score)}
           </td>
+          <td style="padding:10px 8px;color:#B0B0B0;font-size:11px">{pub_str}</td>
           <td style="padding:10px 8px;color:#B0B0B0;font-size:11px">{job.age_hours}h</td>
           <td style="padding:10px 8px;text-align:center">{btn}</td>
         </tr>
@@ -223,8 +235,11 @@ def _build_html(jobs: list, run_at: datetime, domain: str,
                 <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Lieu</th>
                 <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Salaire</th>
                 <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Teletravail</th>
+                <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Telephone</th>
+                <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Email recruteur</th>
                 <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Niveau</th>
                 <th style="padding:12px 8px;color:{color};text-align:center;font-size:12px">Score</th>
+                <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Publication</th>
                 <th style="padding:12px 8px;color:{color};text-align:left;font-size:12px">Age</th>
                 <th style="padding:12px 8px;color:{color};text-align:center;font-size:12px">Action</th>
               </tr>
