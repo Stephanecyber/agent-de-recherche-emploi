@@ -363,14 +363,44 @@ def _save_domain_jobs(jobs: list, path: str, domain: str) -> str:
         except Exception:
             pass
 
-    jobs_all = jobs + [j for j in existing if j.url not in {x.url for x in jobs}]
+    now_naive = datetime.now()
 
     def _to_naive(dt):
         if dt is None:
             return datetime.min
         return dt.astimezone().replace(tzinfo=None) if dt.tzinfo else dt
 
-    jobs_all.sort(key=lambda j: _to_naive(j.published_at), reverse=True)
+    def _age_h(job) -> float:
+        pub = _to_naive(job.published_at)
+        if pub == datetime.min:
+            return 9999.0
+        return (now_naive - pub).total_seconds() / 3600
+
+    new_urls = {j.url for j in jobs}
+    fresh_nouveau = []   # Nouveau + age <= 24h  → haut du fichier
+    kept_history = []    # statut != Nouveau      → bas du fichier
+    purged_count = 0
+
+    for job in existing:
+        if job.url in new_urls:
+            continue  # remplacé par la version fraîche
+        if job.status != "Nouveau":
+            kept_history.append(job)
+        elif _age_h(job) <= 24:
+            fresh_nouveau.append(job)   # encore récent, on garde
+        else:
+            purged_count += 1           # Nouveau > 24h → purgé
+
+    if purged_count:
+        print(f"[Excel] {purged_count} offre(s) 'Nouveau' > 24h purgee(s) de {os.path.basename(path)}")
+
+    # Haut : nouveaux de ce run + frais déjà vus, triés par score desc
+    active = sorted(jobs + fresh_nouveau, key=lambda j: (-j.relevance_score, _age_h(j)))
+
+    # Bas : historique non-Nouveau, triés par date desc
+    kept_history.sort(key=lambda j: _to_naive(j.published_at), reverse=True)
+
+    jobs_all = active + kept_history
 
     wb = _create_workbook(domain)
     ws = wb.active
