@@ -1,4 +1,4 @@
-# Job Agent — Stephane NANDJOU TONLEU
+# Job Agent: Stephane NANDJOU TONLEU
 
 Surveille automatiquement les offres d'emploi sur 4 plateformes légales,
 filtre selon tes critères, génère un Excel et envoie une alerte email.
