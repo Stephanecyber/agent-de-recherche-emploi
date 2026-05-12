@@ -109,7 +109,3 @@ Après chaque run :
 | Détecté le | Date/heure de détection |
 
 ---
-
-## Collaboration Claude / Codex
-- Commits Claude : `[claude] feat(job-agent): ...`
-- Commits Codex : `feat(job-agent): ...`
